@@ -13,7 +13,7 @@ const seedEmployees = async () => {
           firstName: "Light",
           lastName: "Bekete",
           email: "superadmin@madzi.com",
-          phoneNumber: "0888000001",
+          phoneNumber: "0999970149",
           position: "System Engineer",
           department: "IT",
         },
