@@ -53,11 +53,12 @@ export const createSuperUser = async () => {
       firstName: employee.firstName,
       lastName: employee.lastName,
       email: superAdminEmail,
+      user: employee._id,
       password: hashedPassword,
       role: "superadmin",
     })
 
-    console.log("Super admin account created:", superAdmin.emailAddress)
+    console.log("Super admin account created:", superAdmin.email)
   } catch (error) {
     console.error("Failed to create super admin:", error.message)
   }

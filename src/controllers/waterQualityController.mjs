@@ -1,13 +1,21 @@
 import WaterQualityData from "../models/WaterQualityData.mjs";   
 
-export const getWaterQualityData = async (req, res, next) => {          
+export const getLatestWaterQuality = async (req, res, next) => {          
     try {
        
     }                                               
     catch (error) {
         next(error);
     }                       
-}           
+}  
+export const getWaterQualityHistory = async (req, res, next) => {
+    try {
+       
+    }                                               
+    catch (error) {
+        next(error);
+    }                       
+}         
 export const addWaterQualityData = async (req, res, next) => {
     try {
        

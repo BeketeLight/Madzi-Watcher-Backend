@@ -23,6 +23,10 @@ const WaterMonitorSchema = new Schema({
         ref: "Employee",
         required: true,
     },
+    password: {
+        type: String,
+        required: true,
+    },          
     role: {
         type: String,
         default: null,
