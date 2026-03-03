@@ -8,6 +8,7 @@ const waterQualitySchema = new Schema({
   tds: { type: Number, required: true },
   electricalConductivity: { type: Number, required: true },
   turbidity: { type: Number, required: true },
+  waterQualityIndex: { type: Number, required: true },
   createdAt: { type: Date, default: Date.now }, 
 })
 
