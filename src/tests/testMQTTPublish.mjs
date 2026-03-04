@@ -23,6 +23,7 @@ client.on("connect", () => {
   console.log("✅ Connected to HiveMQ");
 
   const sensorPayload = {
+    deviceId: "ESP32-001",
     turbidity: 4.5,
     pH: 7.2,
     tds: 310,
