@@ -49,15 +49,19 @@ mqttClient.on('message', async (topic, message) => {
     if (topic === MQTT_TOPIC_SENSOR) {
       const {
         turbidity,
-        ph,
+        pH,
         tds,
+        waterQualityIndex,
+        electricalConductivity,
         location = { district: 'Unknown', treatmentPlantId: 'N/A' }
       } = payload;
 
       if (
         typeof turbidity !== 'number' ||
-        typeof ph !== 'number' ||
-        typeof tds !== 'number'
+        typeof pH !== 'number' ||
+        typeof tds !== 'number' ||
+        typeof waterQualityIndex !== 'number' ||
+        typeof electricalConductivity !== 'number'
       ) {
         console.warn('[MQTT] Invalid sensor data:', payload);
         return;
@@ -65,8 +69,10 @@ mqttClient.on('message', async (topic, message) => {
 
       const newReading = new WaterQualityData({
         turbidity,
-        ph,
+        pH,
         tds,
+        waterQualityIndex,
+        electricalConductivity,
         time: new Date(),
         location,
       });

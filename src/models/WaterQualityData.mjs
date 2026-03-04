@@ -9,6 +9,10 @@ const waterQualitySchema = new Schema({
   electricalConductivity: { type: Number, required: true },
   turbidity: { type: Number, required: true },
   waterQualityIndex: { type: Number, required: true },
+  location: {
+    district: { type: String, required: true },
+    treatmentPlantId: { type: String, required: true }
+  },  
   createdAt: { type: Date, default: Date.now }, 
 })
 
