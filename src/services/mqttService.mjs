@@ -6,11 +6,16 @@ import WaterQualityData from '../models/WaterQualityData.mjs';
 const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://broker.hivemq.com';
 const MQTT_TOPIC_SENSOR = process.env.MQTT_TOPIC_SENSOR || 'waterquality/sensor';
 const MQTT_TOPIC_CONTROL = process.env.MQTT_TOPIC_CONTROL || 'waterquality/control';
+const MQTT_PORT = process.env.MQTT_PORT || 1883;  
 const MQTT_CLIENT_ID = process.env.MQTT_CLIENT_ID || `madzi-watcher-backend-${Math.random().toString(16).slice(3)}`;
+const MQTT_USERNAME = process.env.MQTT_USERNAME || null;
+const MQTT_PASSWORD = process.env.MQTT_PASSWORD || null;  
 
 let ioInstance; // Will be set from server.mjs
 
-const mqttClient = mqtt.connect(MQTT_BROKER, {
+const mqttClient = mqtt.connect(`${MQTT_BROKER}:${MQTT_PORT}`, {
+  username: process.env.MQTT_USERNAME, // Optional: for authenticated brokers
+  password: process.env.MQTT_PASSWORD, // Optional: for authenticated brokers
   clientId: MQTT_CLIENT_ID,
   clean: true,
   reconnectPeriod: 1000,
