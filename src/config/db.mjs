@@ -11,7 +11,7 @@ const MONGO_URI_CAMPUSS = process.env.MONGO_URI_CAMPUSS
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(MONGO_URL_CLASTER || MONGO_URI_CAMPUSS)
+    const conn = await mongoose.connect(MONGO_URL_CLASTER || MONGO_URI_CAMPUSS || "mongodb://localhost:27017/Madzi-Watcher")
     console.log(`MongoDB Connected: ${conn.connection.host}`)
     await createSuperUser()
   } catch (error) {
