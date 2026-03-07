@@ -34,8 +34,7 @@ export const validateChangePassword = Joi.object({
 //LOG IN VALIDATION
 export const loginValidation = Joi.object({
   email: Joi.string().required(),
-  password: Joi.string().required(),
-  verificationSessionId: Joi.string().required(),
+  password: Joi.string().required()
   
 })
 
