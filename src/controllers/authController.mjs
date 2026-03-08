@@ -18,6 +18,7 @@ import IdentityVerificationSession from "../models/IdentityVerificationSession.m
 import RefreshToken from "../models/RefreshToken.mjs"
 import mongoose from "mongoose"
 import WaterMonitors from "../models/WaterMonitors.mjs"
+//import { AccessTokenInstance } from "twilio/lib/rest/verify/v2/service/accessToken"
 
 // Verify OTP
 export const verifyOtp = async (req, res, next) => {
@@ -83,7 +84,7 @@ export const verifyOtp = async (req, res, next) => {
 // Register User
 export const registerUser = async (req, res, next) => {
   try {
-    const {verificationSessionId, email, location} = req.validatedData
+    const {verificationSessionId, email, location, rol} = req.validatedData
 
     if(!mongoose.Types.ObjectId.isValid(verificationSessionId)) {
       return res.status(400).json({status: "failed:", message: "Invalid verification session"})
@@ -106,7 +107,58 @@ export const registerUser = async (req, res, next) => {
       return res.status(400).json({status: "failed:", message: "No employee found with the provided email"})
     }
 
+    if(!location) {
+      return res.status(400).json({status: "failed:", message: "Location is required"})
+    } 
+    const tempPassword = generateRandomCode(8)
+    const hashshedPassword = await hashPassword(tempPassword)
 
+    //registering new water monitor
+    const waterMonitor = await WaterMonitor.create({
+      firstName: employee.firstName,
+      lastName: employee.lastName,
+      email: employee.email,
+      user: employee._id,
+      password: hashshedPassword,
+      phoneNumber: employee.phoneNumber,
+      role: role || "WaterMonitor",
+      location: {
+        assignedArea: location.assignedArea,
+        district: location.district,
+      }
+    })
+    res.status(201).json({
+      status: "success",
+      message: "Water monitor registered successfully",
+      data: {
+        waterMonitor,
+      }
+    })
+    //generating otp for first login
+    const otpCode = generateRandomCode(6)
+    const otp = await Otp.create({
+      user: waterMonitor._id,
+      code: otpCode,  
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      status: "Registration",
+    })
+    //sending email notification to the new water monitor
+    const html = `
+      <h1>Madzi Watcher Alert</h1>
+      <p>Dear ${employee.firstName} ${employee.lastName},</p>
+      <p>You have been registered as a Water Monitor. Your account has been created successfully.</p>
+
+      <h3>Account Details:</h3>
+      <ul>
+        <li><strong>Email:</strong> ${employee.email}</li>
+        <li><strong>Temporary password:</strong> ${tempPassword}</li>
+      </ul>
+      <p>Please use the OTP sent via email: <strong>${otpCode}</strong></p>
+      <p>This OTP will expire in 10 minutes. Please change your password after logging in.</p>
+      <p>Thank you for joining the Madzi Watcher team!</p>
+    `
+    await sendEmail(employee.email, "Welcome to Madzi Watcher - Your Account Details", html)
+    
   
   } catch (error) {
     next(error);
@@ -118,32 +170,37 @@ export const registerUser = async (req, res, next) => {
 // Login User
 export const loginUser = async (req, res, next) => {
   try {
-      const{email, password, verificationSessionId} = req.validatedData
+      const{email, password} = req.validatedData
 
-    if(!mongoose.Types.ObjectId.isValid(verificationSessionId)) {
-      return res.status(400).json({status: "failed:", message: "Invalid verification session"})
-    }
-    
-    const verificationSession = await IdentityVerificationSession.findById(verificationSessionId)
-    if(!verificationSession || verificationSession.status !== "Verified" || verificationSession.expiresAt < new Date()) {
-      return res.status(400).json({status: "failed:", message: "Expired verification session"})
-    }
-
-    const user = await WaterMonitors.findOne({email}).populate("user")
-    if(!user) {
+    const findWaterMonitor = await WaterMonitors.findOne({email})
+    if(!findWaterMonitor) {
       return res.status(400).json({status: "failed:", message: "Invalid email or password"})
     }
     
-    const isPasswordValid = await comparePassword(password, user.password)
+    const isPasswordValid = await comparePassword(password, findWaterMonitor.password)
     if(!isPasswordValid) {
       return res.status(400).json({status: "failed:", message: "Invalid email or password"})
     }
+    //generating refresh token and access token for the waterMonitor
+    const accessToken = generateAccessToken(findWaterMonitor._id)
+    const refreshToken = generateRefreshToken(findWaterMonitor._id) 
+    const decoded = verifyRefreshToken(refreshToken)
+
+    const refreshExpiires = new Date(decoded.exp * 1000)
+
+    await RefreshToken.create({
+      token: refreshToken,
+      user: findWaterMonitor._id,
+      expiresAt: refreshExpiires,
+      revoked: false, 
+    })
 
     const otpCode = generateRandomCode(6)
 
     const otp = await Otp.create({
-      user: user._id,
+      user: findWaterMonitor._id,
       code: otpCode,
+      email: findWaterMonitor.email,
       expiresAt: new Date(Date.now() + 10 * 60 * 1000), // OTP expires in 10 minutes
       status: "Login",
     })
@@ -153,12 +210,28 @@ export const loginUser = async (req, res, next) => {
       <p>Your login veriification code is: ${otpCode}</p>
       <p>This code will expire in 10 minutes.</p>'
     `
-    await sendEmail(user.email, "Madzi Watcher Login OTP", html)
-    
+    await sendEmail(findWaterMonitor.email, "Madzi Watcher Login OTP", html)
+
+    const sessionExpires = new Date(Date.now() + 15 * 60 * 1000) // session expires in 15 minutes
+
+    const session = await IdentityVerificationSession.create({
+      waterMonitorId: findWaterMonitor._id,
+      status: "pending",
+      expiresAt: sessionExpires
+    })
+
     res.status(200).json({
       status: "success",
-      message: `OTP sent to ${maskEmail(user.email)}`,
-      loginSessionId: otp._id,
+      message:{
+        accessTokenInstance: accessToken,
+        refreshTokenInstance: refreshToken,
+        otpCode: otpCode,
+        user:{
+          id: findWaterMonitor._id,
+          email: findWaterMonitor.email,
+        } 
+      
+      }
     })
   } catch (error) {
     next(error);
