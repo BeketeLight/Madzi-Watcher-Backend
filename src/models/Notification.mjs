@@ -4,7 +4,7 @@ const { Schema, model, Types } = mongoose;
 const notificationSchema = new Schema({
     user: { 
         type: Types.ObjectId, 
-        ref: User,
+        ref: "WaterMonitor",
         required: true,
     },
 
