@@ -25,26 +25,17 @@ import { cookies } from "supertest"
 export const verifyOtp = async (req, res, next) => {
   try {
     const {email, otp} = req.body
-    console.log("Received OTP verification request:", { email, otp });
-
-    // if(!mongoose.Types.ObjectId.isValid(loginSessionId)) {
-    //   return res.status(400).json({status: "failed:", message: "Invalid login session "})
-    // }
+    console.log("Received OTP verification request:", {email, otp});
     //verifying if the session  for otp exists and is pending
-    const session = await Otp.findOne({ email })
+    const session = await Otp.findOne({email})
     console.log("Found OTP session:", session);
-    // if (!session || session.status !== "pending") {
-    //   return res.status(400).json({status: "failed:", message: "Invalid or expired OTP"})
-    // }
-    //checking if the otp matches the one in the session and if it is not expired
-    if(session.code !== otp) {
+
+    if (!session.code !== otp) {
       session.status = "expired"
       await session.save()
       return res.status(400).json({status: "failed:", message: "OTP has expired"})
     }
-    // if(session.code !== otp){
-    //   return res.status(400).json({status: "failed:", message: "Invalid OTP"})
-    // }
+    //veriffication session for otp
 
     const verificationSession = await IdentityVerificationSession.findOne({email: email, status: "pending"})
 
@@ -53,35 +44,13 @@ export const verifyOtp = async (req, res, next) => {
     }
 
     verificationSession.status = "verified"
-    await verificationSession.save()  
+    await verificationSession.save()
 
-    // session.status = "verified"
-    // await session.save()
-
-    // const accessToken = generateAccessToken(session.user)
-    // const refreshToken = generateRefreshToken(session.user)
-    // const decoded = verifyRefreshToken(refreshToken)
-
-    // const refreshExpiires = new Date(decoded.exp * 1000)
-
-    // await RefreshToken.create({
-    //   token: refreshToken,
-    //   user: session.user._id,
-    //   expiresAt: refreshExpiires,
-    //   revoked: false, 
-    // })
-
-    // res.cookies("refreshLoginToken ", refreshToken, {
-    //   httpOnly: true,
-    //   secure: true,
-    //   sameSite: "none",
-    //   path: "/",
-    //   expires: refreshExpiires,
-    // })
     //used granted permission to login
     res.status(200).json({
       status: "success",
-      message: "otp verified successfully"
+      message: "OTP verified successfully. You can now log in."
+
     })
 
   } catch (error) {
@@ -91,16 +60,11 @@ export const verifyOtp = async (req, res, next) => {
   
 }
 
-
 // Register User
 export const registerUser = async (req, res, next) => {
   try {
-    const {verificationSessionId, email, location, role} = req.validatedData
+    const {email, role,location, verificationSessionId} = req.validatedData
 
-    if(!mongoose.Types.ObjectId.isValid(verificationSessionId)) {
-      return res.status(400).json({status: "failed:", message: "Invalid verification session"})
-    }
-    //checking if the verification session exists and is valid
     const verificationSession = await IdentityVerificationSession.findById(verificationSessionId)
 
     if(!verificationSession || verificationSession.status !== "verified" || verificationSession.expiresAt < new Date()) {
@@ -118,12 +82,7 @@ export const registerUser = async (req, res, next) => {
       return res.status(400).json({status: "failed:", message: "No employee found with the provided email"})
     }
 
-    if(!location) {
-      return res.status(400).json({status: "failed:", message: "Location is required"})
-    } 
-    //const tempPassword = generateRandomCode(8)
-    //const hashshedPassword = await hashPassword(tempPassword)
-
+    
     //registering new water monitor
     const waterMonitor = await WaterMonitor.create({
       firstName: employee.firstName,
@@ -136,9 +95,10 @@ export const registerUser = async (req, res, next) => {
         assignedArea: location.assignedArea,
         district: location.district,
       }
+      
     })
-
-        //sending email notification to the new water monitor
+    
+    //sending email notification to the new water monitor
     const html = `
       <h1>Madzi Watcher Alert</h1>
       <p>Dear ${employee.firstName} ${employee.lastName},</p>
@@ -147,8 +107,8 @@ export const registerUser = async (req, res, next) => {
       <h3>Account Details:</h3>
       <ul>
         <li><strong>Email:</strong> ${employee.email}</li>
+        
       </ul>
-      <p>Please change your password after logging in.</p>
       <p>Thank you for joining the Madzi Watcher team!</p>
     `
     await sendEmail(employee.email, "Welcome to Madzi Watcher - Your Account Details", html)
@@ -170,6 +130,13 @@ export const registerUser = async (req, res, next) => {
     // })
 
     
+    res.status(20).json({
+      status: "success",
+      message: "Water monitor registered successfully",
+      data: {
+        waterMonitor,
+      }
+    })
   
   } catch (error) {
     next(error);
@@ -193,17 +160,16 @@ export const loginUser = async (req, res, next) => {
     if(!isPasswordValid) {
       return res.status(400).json({status: "failed:", message: "Invalid email or password"})
     }
-    //generating refresh token and access token for the waterMonitor
-    const payload = {
+    const payload ={
       sub: findWaterMonitor._id,
-      role: findWaterMonitor.role,
+      role:findWaterMonitor.role
     }
-    console.log("Generating tokens with payload:", payload);
+
+    //generating refresh token and access token for the waterMonitor
+    console.log("Generating tokens with payload",payload);
     const accessToken = generateAccessToken(payload)
     const refreshToken = generateRefreshToken(payload) 
     const decoded = verifyRefreshToken(refreshToken)
-
-    //const refreshExpires = new Date(decoded.expiresIn)
 
     await RefreshToken.create({
       token: refreshToken,
@@ -214,21 +180,21 @@ export const loginUser = async (req, res, next) => {
 
     const otpCode = generateRandomCode()
 
-    const otp = await Otp.findOneAndUpdate(
+    const otp = await Otp.findByIdAndUpdate(
       {
         email: findWaterMonitor.email,
       },
       {
-      $set: {
-         code: otpCode,   
-         expiresAt: new Date(Date.now() + 10 * 60 * 1000), // OTP expires in 10 minutes
+        $set:{
+          code: otpCode,
+          expiresAt: new Date(Date.now() + 10 * 60 * 1000) //session expires in 10 minutes
         }
       },
-     {
-        new: true,     // return updated document
-        upsert: true   // create if not found
+      {
+        new: true, //return updated document
+        upsert: true //create one if not found
       }
-  )
+    )
 
     const html = `
       <h1>Madzi Watcher Alert</h1>
@@ -237,31 +203,31 @@ export const loginUser = async (req, res, next) => {
     `
     const result = await sendEmail(findWaterMonitor.email, "Madzi Watcher Login OTP", html)
 
-
-    const sessionExpires = new Date(Date.now() + 15 * 60 * 1000) // session expires in 15 minutes
+    const sessionExpires = new Date(Date.now() + 10 * 60 * 1000) // session expires in 15 minutes
 
     const session = await IdentityVerificationSession.findOneAndUpdate(
       {
-        waterMonitorId: findWaterMonitor._id,
-        email: findWaterMonitor.email
+      waterMonitorId: findWaterMonitor._id,
+      status: "pending",
+      email: findWaterMonitor.email
       },
       {
-      $set: {
-        status: "pending",
-        expiresAt: sessionExpires
+        $set:{
+          status: "pending",
+          expiresAt:sessionExpires
+        }
+      },
+      {
+        new: true,
+        upsert: true
       }
-     },
-    {
-      new: true,
-      upsert: true
-    }
     );
 
-    res.cookie("refreshLoginToken", refreshToken, {
+    res.cookie("refreshLoginToken ", refreshToken, {
       httpOnly: true,
       secure: true,
-      sameSite: "none",   
-
+      sameSite: "none",
+      
     })
 
     res.status(200).json({
