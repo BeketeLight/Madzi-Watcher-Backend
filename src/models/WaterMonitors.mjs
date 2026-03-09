@@ -25,7 +25,7 @@ const WaterMonitorSchema = new Schema({
     },
     password: {
         type: String,
-        required: true,
+        default: null,
     },          
     role: {
         type: String,

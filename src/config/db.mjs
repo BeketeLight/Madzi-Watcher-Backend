@@ -41,7 +41,7 @@ export const createSuperUser = async () => {
     const existingUser = await WaterMonitor.findOne({ email: employee.email })
 
     if (existingUser) {
-      existingUser.role = "superadmin"
+      existingUser.role = "superAdmin"
       await existingUser.save()
       console.log("Existing user promoted to superadmin")
       return
@@ -55,7 +55,7 @@ export const createSuperUser = async () => {
       email: superAdminEmail,
       user: employee._id,
       password: hashedPassword,
-      role: "superadmin",
+      role: "superAdmin",
       location: {
         assignedArea: "Headquarters",
         district: "Central District"

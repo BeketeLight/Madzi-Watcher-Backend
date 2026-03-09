@@ -22,6 +22,7 @@ const OtpSchema = new Schema(
     {           
         timestamps: true, // Automatically add createdAt and updatedAt fields
     }                                                               
-);                                                  
+);  
+OtpSchema.index({ email: 1, code: 1 }, { unique: true }); // Ensure unique OTP per email                                                  
 
 export default Mongoose.model("Otp", OtpSchema);    
