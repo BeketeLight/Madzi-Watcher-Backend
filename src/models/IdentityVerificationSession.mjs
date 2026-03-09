@@ -28,10 +28,6 @@ const IdentityVerificationSessionSchema = new Schema(
     {       
         timestamps: true, // Automatically add createdAt and updatedAt fields
     }                                               
-);   
-IdentityVerificationSessionSchema.index(
-  { waterMonitorId: 1, email: 1 },
-  { unique: true }
-);                   
+);                     
                             
 export default mongoose.model("IdentityVerificationSession", IdentityVerificationSessionSchema);                

@@ -67,7 +67,7 @@ export const registerUser = async (req, res, next) => {
 
     const verificationSession = await IdentityVerificationSession.findById(verificationSessionId)
 
-    if(!verificationSession || verificationSession.status !== "verified" || verificationSession.expiresAt < new Date()) {
+    if(!verificationSession || verificationSession.status !== "verified") {
       return res.status(400).json({status: "failed:", message: "Expired verification session"})
     }
     //checking if the email is already in use
@@ -207,12 +207,11 @@ export const loginUser = async (req, res, next) => {
 
     const session = await IdentityVerificationSession.findOneAndUpdate(
       {
-      waterMonitorId: findWaterMonitor._id,
-      status: "pending",
-      email: findWaterMonitor.email
+        email: findWaterMonitor.email
       },
       {
         $set:{
+          waterMonitorId: findWaterMonitor._id,
           status: "pending",
           expiresAt:sessionExpires
         }
