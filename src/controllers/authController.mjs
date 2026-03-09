@@ -29,7 +29,7 @@ export const verifyOtp = async (req, res, next) => {
     const session = await Otp.findOne({email})
     console.log("Found OTP session:", session);
 
-    if (!session.code !== otp) {
+    if (session.code !== otp) {
       session.status = "expired"
       await session.save()
       return res.status(400).json({status: "failed:", message: "OTP has expired"})
