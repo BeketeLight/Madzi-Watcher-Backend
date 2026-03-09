@@ -223,12 +223,12 @@ export const loginUser = async (req, res, next) => {
       }
     );
 
-    res.cookie("refreshLoginToken ", refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
+    // res.cookie("refreshLoginToken ", refreshToken, {
+    //   httpOnly: true,
+    //   secure: true,
+    //   sameSite: "none",
       
-    })
+    // })
 
     res.status(200).json({
       status: "success",
