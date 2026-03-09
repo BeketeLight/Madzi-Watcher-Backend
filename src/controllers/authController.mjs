@@ -162,7 +162,7 @@ export const loginUser = async (req, res, next) => {
 
     const otpCode = generateRandomCode()
 
-    const otp = await Otp.findByIdAndUpdate(
+    const otp = await Otp.findOneAndUpdate(
       {
         email: findWaterMonitor.email,
       },
