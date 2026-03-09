@@ -279,7 +279,42 @@ export const refreshToken = async (req, res, next) => {
 // Request Password Reset
 export const requestPasswordReset = async (req, res, next) => {
   try {
+    const email = req.validatedData
+    const findWaterMonitor = await WaterMonitors.findOne({email})
+    if(!findWaterMonitor) {
+      return res.status(400).json({status: "failed:", message: "Email not found"})
+    }
+    //generating otp for password reset
+   const otpCode = generateRandomCode()
+   const otp = await Otp.findOneAndUpdate(
+    {
+      email: findWaterMonitor.email,
+    },
+    {
+      $set:{
+        code: otpCode,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000), //session expires in 10 minutes
+        status: "pending"
+      }
+    }, 
+    {
+      new: true, //return updated document
+      upsert: true //create one if not found
+    }
     
+   );
+
+   const html = `
+      <h1>Madzi Watcher Alert</h1>
+      <p>Your password reset code is: ${otpCode}</p>
+      <p>This code will expire in 10 minutes.</p>'
+    `
+    await sendEmail(findWaterMonitor.email, "Madzi Watcher Password Reset OTP", html)
+
+    return res.status(200).json({
+      status: "success",
+      message: `Password reset OTP sent to ${email}`
+    });
     
   } catch (error) {
     next(error);
@@ -291,8 +326,36 @@ export const requestPasswordReset = async (req, res, next) => {
 //reset password
 export const resetPassword = async (req, res, next) => {
   try {
+    const {email, newPassword, confirmPassword} = req.validatedData  
+
+    if(newPassword !== confirmPassword) {
+      return res.status(400).json({status: "failed:", message: "Passwords do not match"})
+    }
     
+    const findWaterMonitor = await WaterMonitors.findOne({email})
+    if(!findWaterMonitor) {
+      return res.status(400).json({status: "failed:", message: "Email not found"})
+    }
+
+    //checking  otpsession using email
+    const otpSession = await Otp.findOne({email})
+  
+    if(otpSession && otpSession.status !== "verified") { 
+      return res.status(400).json({status: "failed:", message: "OTP session not verified for the email"})
+    }
+  
+    const hashedPassword = await hashPassword(newPassword)
+    findWaterMonitor.password = hashedPassword
+    await findWaterMonitor.save()
     
+    otpSession.status = "used"
+    await otpSession.save()
+
+    res.status(200).json({
+      status: "success",
+      message: "Password reset successful. You can now log in with your new password."
+    })
+
   } catch (error) {
     next(error);
     
