@@ -13,6 +13,21 @@ export const getLatestWaterQuality = async (req, res, next) => {
 // 2. Get historical water quality data (filtered by time/location)
 export const getWaterQualityHistory = async (req, res, next) => {
     try {
+
+      const getWaterQualityHistory = await WaterQualityData.find({})
+
+      if(getLatestWaterQuality.length === 0){
+         return res.status(401).json({
+          status: "failed",
+          message:"no history"
+         })
+      }
+
+      return res.status(200).json({
+        status:"success",
+        message: "wateer quality history data is avaialble",
+        data: getWaterQualityHistory
+      })
        
     }                                               
     catch (error) {
