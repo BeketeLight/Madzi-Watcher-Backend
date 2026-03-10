@@ -33,6 +33,32 @@ export const getAllUsers = async (req,res,next)=> {
 //logic to get users by id
 export const getUserById = async (req,res, next)=> {
     try {
+      const { id } = req.params;
+
+    // check if id is a valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        status: "failed",
+        message: "Invalid user ID"
+      });
+    }
+
+    // query database
+    const user = await WaterMonitor.findById(id);
+
+    // check if document exists
+    if (!user) {
+      return res.status(404).json({
+        status: "failed",
+        message: "User not found"
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      message: "User retrieved successfully",
+      data: user
+    });
     
     
   } catch (error) {
