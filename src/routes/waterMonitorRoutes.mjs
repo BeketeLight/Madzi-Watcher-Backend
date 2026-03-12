@@ -18,15 +18,15 @@ router.get('/', authenticateJWT, checkRole(['admin','superAdmin','officer']), ge
 // Get logged-in user's profile
 router.get('/me/profile', authenticateJWT, getMyProfile);
 // Get a specific user by ID (admin or provider)
-router.get('/:id', authenticateJWT, checkRole(['admin','superadmin','officer']), getUserById);
+router.get('/:id', authenticateJWT, checkRole(['admin','superAdmin','officer']), getUserById);
 
 // Update user profile (self)
 router.patch('/me/profile', authenticateJWT, updateUserProfile);
 
 // Delete a user (admin only)
-router.delete('/:id', authenticateJWT, checkRole(['admin','superadmin','officer']), deleteUser);
+router.delete('/:id', authenticateJWT, checkRole(['admin','superAdmin','officer']), deleteUser);
 
 // Promote a user (admin only)
-router.patch('/:id/promote', authenticateJWT, checkRole(['admin','superadmin']), promoteUser);
+router.patch('/:id/promote', authenticateJWT, checkRole(['admin','superAdmin']), promoteUser);
 
 export default router;
