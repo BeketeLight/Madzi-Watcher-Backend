@@ -105,6 +105,38 @@ export const getMyProfile = async (req,res,next)=> {
 //logic to update user profile
 export const updateUserProfile = async (req,res, next)=> {
     try {
+       const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        status: "failed",
+        message: "Unauthorized. User not identified."
+      });
+    }
+
+    const updateData = req.body;
+
+    const updatedUser = await WaterMonitor.findByIdAndUpdate(
+      userId,
+      updateData,
+      {
+        new: true,          // return updated document
+        runValidators: true // enforce schema validation
+      }
+    ).select("-password");
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        status: "failed",
+        message: "User not found"
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      message: "Profile updated successfully",
+      data: updatedUser
+    });
     
     
   } catch (error) {
