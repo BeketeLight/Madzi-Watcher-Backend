@@ -148,6 +148,35 @@ export const updateUserProfile = async (req,res, next)=> {
 //logic to update User
 export const deleteUser = async (req,res)=> {
     try {
+      const { id } = req.params;
+
+    // Validate MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        status: "failed",
+        message: "Invalid user ID"
+      });
+    }
+
+    // Delete the user
+    const deletedUser = await WaterMonitor.findByIdAndDelete(id);
+
+    if (!deletedUser) {
+      return res.status(404).json({
+        status: "failed",
+        message: "User not found"
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      message: "User deleted successfully",
+      data: {
+        id: deletedUser._id,
+        email: deletedUser.email
+      }
+    });
+
     
     
   } catch (error) {
