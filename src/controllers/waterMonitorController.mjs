@@ -201,14 +201,14 @@ export const promoteUser = async (req, res, next) => {
       });
     }
 
-    // Validate role input
-    const allowedRoles = ["officer", "admin", "superadmin"];
-    if (!newRole || !allowedRoles.includes(newRole)) {
-      return res.status(400).json({
-        status: "failed",
-        message: `Invalid role. Allowed roles: ${allowedRoles.join(", ")}`
-      });
-    }
+    // // Validate role input
+    // const allowedRoles = ["officer", "admin", "superAdmin"];
+    // if (!newRole || !allowedRoles.includes(newRole)) {
+    //   return res.status(400).json({
+    //     status: "failed",
+    //     message: `Invalid role. Allowed roles: ${allowedRoles.join(", ")}`
+    //   });
+    // }
 
     // Find user
     const user = await WaterMonitor.findById(id);
