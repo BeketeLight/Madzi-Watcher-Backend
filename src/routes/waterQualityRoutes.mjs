@@ -47,8 +47,8 @@ router.get('/stats/correlation',        authenticateJWT, getParameterCorrelation
 router.get('/stats/outliers',           authenticateJWT, detectOutliers);
 router.get('/stats/classification',     authenticateJWT, getWaterQualityClassification);
 router.get('/stats/stability-score',    authenticateJWT, getWaterStabilityScore);
-router.get('/stats/district',           authenticateJWT, getDistrictStatistics);
-router.get('/stats/treatment-plant',    authenticateJWT, getTreatmentPlantStatistics);
+router.get('/stats/:district/district', authenticateJWT, getDistrictStatistics);
+router.get('/stats/:treatment-plant/treatment-plant', authenticateJWT, getTreatmentPlantStatistics);
 
 // ====================== ADMIN / OFFICER ONLY ROUTES ======================
 // router.post('/manual', authenticateJWT, checkRole(['admin', 'superadmin', 'officer']), addWaterQualityDataManual);

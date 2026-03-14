@@ -1396,6 +1396,8 @@ export const getTreatmentPlantStatistics = async (req, res, next) => {
     try {
         const { plantId } = req.params;
 
+        console.log(plantId)
+
         if (!plantId) {
             return res.status(400).json({
                 status: "failed",
