@@ -336,3 +336,57 @@ export const getStandardDeviationStatistics = async (req, res, next) => {
     }
 };
 
+
+/*
+|--------------------------------------------------------------------------
+| getMedianStatistics
+|--------------------------------------------------------------------------
+| Calculates the median (middle value) of sensor readings.
+|
+| Expected operations:
+| - Sort values and return the middle reading.
+|
+| Purpose:
+| Provides a more reliable measure of typical conditions
+| when outliers exist.
+*/
+export const getMedianStatistics = async (req, res, next) => {
+    try {
+        const getAllValues = async (field) => {
+            const values = await WaterQualityData.find({}, { [field]: 1, _id: 0 })
+                .sort({ [field]: 1 })
+                .lean();
+            return values.map(v => v[field]).filter(v => v !== null && v !== undefined);
+        };
+
+        const [phValues, tdsValues, turbidityValues, conductivityValues, wqiValues] = await Promise.all([
+            getAllValues('pH'),
+            getAllValues('tds'),
+            getAllValues('turbidity'),
+            getAllValues('electricalConductivity'),
+            getAllValues('waterQualityIndex')
+        ]);
+
+        const calculateMedian = (arr) => {
+            if (arr.length === 0) return null;
+            const mid = Math.floor(arr.length / 2);
+            return arr.length % 2 !== 0 ? arr[mid] : (arr[mid - 1] + arr[mid]) / 2;
+        };
+
+        const medianStats = {
+            pH: calculateMedian(phValues),
+            tds: calculateMedian(tdsValues),
+            turbidity: calculateMedian(turbidityValues),
+            electricalConductivity: calculateMedian(conductivityValues),
+            waterQualityIndex: calculateMedian(wqiValues)
+        };
+
+        return res.status(200).json({
+            status: "success",
+            message: "Median statistics calculated successfully",
+            data: medianStats
+        });
+    } catch (error) {
+        next(error);
+    }
+};

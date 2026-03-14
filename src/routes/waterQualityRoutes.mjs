@@ -7,6 +7,7 @@ import {
   getMeanStatistics,
   getVarianceStatistics,
   getStandardDeviationStatistics,
+  getMedianStatistics,
 } from '../controllers/waterQualityController.mjs';
 
 const router = express.Router();
@@ -21,5 +22,6 @@ router.get('/history', authenticateJWT, getWaterQualityHistory);
 router.get('/statistics/mean', authenticateJWT, getMeanStatistics);
 router.get('/statistics/variance', authenticateJWT, getVarianceStatistics);
 router.get('/statistics/std-dev', authenticateJWT, getStandardDeviationStatistics);
+router.get('/statistics/median', authenticateJWT, getMedianStatistics);
 
 export default router;
