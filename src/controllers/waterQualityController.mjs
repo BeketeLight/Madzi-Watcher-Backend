@@ -726,3 +726,130 @@ export const getYearlyStatistics = async (req, res, next) => {
         next(error);
     }
 };
+
+
+/*
+|--------------------------------------------------------------------------
+| getTrendAnalysis
+|--------------------------------------------------------------------------
+| Analyzes how water quality parameters change over time.
+|
+| Expected operations:
+| - Identify increasing or decreasing trends
+|   in turbidity, pH, TDS, and WQI.
+|
+| Purpose:
+| Helps detect gradual pollution or system degradation.
+*/
+export const getTrendAnalysis = async (req, res, next) => {
+    try {
+        const { period = 30 } = req.query; // days to analyze
+
+        const trends = await WaterQualityData.aggregate([
+            {
+                $match: {
+                    createdAt: { $gte: new Date(Date.now() - period * 24 * 60 * 60 * 1000) }
+                }
+            },
+            {
+                $sort: { createdAt: 1 }
+            },
+            {
+                $group: {
+                    _id: null,
+                    firstReading: { $first: "$$ROOT" },
+                    lastReading: { $last: "$$ROOT" },
+                    readings: { $push: "$$ROOT" }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    trends: {
+                        pH: {
+                            start: "$firstReading.pH",
+                            end: "$lastReading.pH",
+                            change: { $subtract: ["$lastReading.pH", "$firstReading.pH"] },
+                            direction: {
+                                $cond: {
+                                    if: { $gt: [{ $subtract: ["$lastReading.pH", "$firstReading.pH"] }, 0] },
+                                    then: "increasing",
+                                    else: {
+                                        $cond: {
+                                            if: { $lt: [{ $subtract: ["$lastReading.pH", "$firstReading.pH"] }, 0] },
+                                            then: "decreasing",
+                                            else: "stable"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        tds: {
+                            start: "$firstReading.tds",
+                            end: "$lastReading.tds",
+                            change: { $subtract: ["$lastReading.tds", "$firstReading.tds"] },
+                            direction: {
+                                $cond: {
+                                    if: { $gt: [{ $subtract: ["$lastReading.tds", "$firstReading.tds"] }, 0] },
+                                    then: "increasing",
+                                    else: {
+                                        $cond: {
+                                            if: { $lt: [{ $subtract: ["$lastReading.tds", "$firstReading.tds"] }, 0] },
+                                            then: "decreasing",
+                                            else: "stable"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        turbidity: {
+                            start: "$firstReading.turbidity",
+                            end: "$lastReading.turbidity",
+                            change: { $subtract: ["$lastReading.turbidity", "$firstReading.turbidity"] },
+                            direction: {
+                                $cond: {
+                                    if: { $gt: [{ $subtract: ["$lastReading.turbidity", "$firstReading.turbidity"] }, 0] },
+                                    then: "increasing",
+                                    else: {
+                                        $cond: {
+                                            if: { $lt: [{ $subtract: ["$lastReading.turbidity", "$firstReading.turbidity"] }, 0] },
+                                            then: "decreasing",
+                                            else: "stable"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        wqi: {
+                            start: "$firstReading.waterQualityIndex",
+                            end: "$lastReading.waterQualityIndex",
+                            change: { $subtract: ["$lastReading.waterQualityIndex", "$firstReading.waterQualityIndex"] },
+                            direction: {
+                                $cond: {
+                                    if: { $gt: [{ $subtract: ["$lastReading.waterQualityIndex", "$firstReading.waterQualityIndex"] }, 0] },
+                                    then: "worsening",
+                                    else: {
+                                        $cond: {
+                                            if: { $lt: [{ $subtract: ["$lastReading.waterQualityIndex", "$firstReading.waterQualityIndex"] }, 0] },
+                                            then: "improving",
+                                            else: "stable"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        ]);
+
+        return res.status(200).json({
+            status: "success",
+            message: "Trend analysis completed successfully",
+            data: trends[0] || { trends: {} }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+

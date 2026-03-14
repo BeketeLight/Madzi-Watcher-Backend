@@ -13,6 +13,7 @@ import {
   getWeeklyStatistics,
   getMonthlyStatistics,
   getYearlyStatistics,
+  getTrendAnalysis,
 } from '../controllers/waterQualityController.mjs';
 
 const router = express.Router();
@@ -36,4 +37,6 @@ router.get('/aggregations/weekly', authenticateJWT, getWeeklyStatistics);
 router.get('/aggregations/monthly', authenticateJWT, getMonthlyStatistics);
 router.get('/aggregations/yearly', authenticateJWT, getYearlyStatistics);
 
+// Analysis Routes (accessible to all authenticated users)
+router.get('/analysis/trends', authenticateJWT, getTrendAnalysis);
 export default router;
