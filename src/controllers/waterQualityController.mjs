@@ -118,3 +118,68 @@ export const getDashboardStatistics = async (req, res, next) => {
         next(error);
     }                       
 } 
+
+
+/*
+|--------------------------------------------------------------------------
+| getWaterQualityHistory
+|--------------------------------------------------------------------------
+| Returns historical water quality data collected by the ESP32 sensors.
+|
+| Expected operations:
+| - Retrieve all stored sensor records from MongoDB.
+| - Return time-series data containing pH, TDS, turbidity,
+|   electrical conductivity, and WQI.
+|
+| Purpose:
+| Allows administrators to view the full history of water quality
+| measurements for analysis and visualization (graphs, charts).
+*/
+export const getWaterQualityHistory = async (req, res, next) => {
+    try {
+        const { limit = 100, skip = 0, startDate, endDate } = req.query;
+
+        let query = {};
+
+        // Add date range filtering if provided
+        if (startDate || endDate) {
+            query.createdAt = {};
+            if (startDate) query.createdAt.$gte = new Date(startDate);
+            if (endDate) query.createdAt.$lte = new Date(endDate);
+        }
+
+        const history = await WaterQualityData.find(query)
+            .sort({ createdAt: -1 })
+            .skip(parseInt(skip))
+            .limit(parseInt(limit))
+            .lean();
+
+        const totalCount = await WaterQualityData.countDocuments(query);
+
+        if (history.length === 0) {
+            return res.status(404).json({
+                status: "failed",
+                message: "No water quality history found"
+            });
+        }
+
+        return res.status(200).json({
+            status: "success",
+            message: "Water quality history data retrieved successfully",
+            data: {
+                readings: history,
+                pagination: {
+                    total: totalCount,
+                    limit: parseInt(limit),
+                    skip: parseInt(skip),
+                    hasMore: totalCount > (parseInt(skip) + history.length)
+                }
+            }
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+}
+
+
