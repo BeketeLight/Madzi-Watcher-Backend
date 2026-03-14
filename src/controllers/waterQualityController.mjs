@@ -390,3 +390,62 @@ export const getMedianStatistics = async (req, res, next) => {
         next(error);
     }
 };
+
+
+/*
+|--------------------------------------------------------------------------
+| getMinMaxStatistics
+|--------------------------------------------------------------------------
+| Finds the minimum and maximum values recorded by sensors.
+|
+| Expected operations:
+| - Identify lowest and highest values for each parameter.
+|
+| Purpose:
+| Helps detect extreme pollution events or abnormal sensor readings.
+*/
+export const getMinMaxStatistics = async (req, res, next) => {
+    try {
+        const minMaxStats = await WaterQualityData.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    minPH: { $min: "$pH" },
+                    maxPH: { $max: "$pH" },
+                    minTDS: { $min: "$tds" },
+                    maxTDS: { $max: "$tds" },
+                    minTurbidity: { $min: "$turbidity" },
+                    maxTurbidity: { $max: "$turbidity" },
+                    minConductivity: { $min: "$electricalConductivity" },
+                    maxConductivity: { $max: "$electricalConductivity" },
+                    minWQI: { $min: "$waterQualityIndex" },
+                    maxWQI: { $max: "$waterQualityIndex" }
+                }
+            },
+            {
+                $project: {
+                    pH: { min: "$minPH", max: "$maxPH" },
+                    tds: { min: "$minTDS", max: "$maxTDS" },
+                    turbidity: { min: "$minTurbidity", max: "$maxTurbidity" },
+                    electricalConductivity: { min: "$minConductivity", max: "$maxConductivity" },
+                    waterQualityIndex: { min: "$minWQI", max: "$maxWQI" }
+                }
+            }
+        ]);
+
+        if (minMaxStats.length === 0) {
+            return res.status(404).json({
+                status: "failed",
+                message: "No data available for min/max statistics"
+            });
+        }
+
+        return res.status(200).json({
+            status: "success",
+            message: "Min/Max statistics calculated successfully",
+            data: minMaxStats[0]
+        });
+    } catch (error) {
+        next(error);
+    }
+};
