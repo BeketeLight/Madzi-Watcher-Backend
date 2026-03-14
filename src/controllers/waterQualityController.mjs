@@ -183,3 +183,55 @@ export const getWaterQualityHistory = async (req, res, next) => {
 }
 
 
+/*
+|--------------------------------------------------------------------------
+| getMeanStatistics
+|--------------------------------------------------------------------------
+| Calculates the average (mean) value for each water quality parameter.
+|
+| Expected operations:
+| - Compute mean values for:
+|     pH
+|     TDS
+|     turbidity
+|     electrical conductivity
+|     Water Quality Index
+|
+| Purpose:
+| Provides a general overview of typical water conditions
+| across all sensor measurements.
+*/
+export const getMeanStatistics = async (req, res, next) => {
+    try {
+        const meanStats = await WaterQualityData.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    pH: { $avg: "$pH" },
+                    tds: { $avg: "$tds" },
+                    turbidity: { $avg: "$turbidity" },
+                    electricalConductivity: { $avg: "$electricalConductivity" },
+                    waterQualityIndex: { $avg: "$waterQualityIndex" }
+                }
+            }
+        ]);
+
+        if (meanStats.length === 0) {
+            return res.status(404).json({
+                status: "failed",
+                message: "No data available for mean statistics"
+            });
+        }
+
+        return res.status(200).json({
+            status: "success",
+            message: "Mean statistics calculated successfully",
+            data: meanStats[0]
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+
+

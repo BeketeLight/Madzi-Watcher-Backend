@@ -4,6 +4,7 @@ import { checkRole } from '../middleware/roleMiddleware.mjs';
 import {
   getDashboardStatistics,
   getWaterQualityHistory,
+  getMeanStatistics,
 } from '../controllers/waterQualityController.mjs';
 
 const router = express.Router();
@@ -14,5 +15,7 @@ router.get('/dashboard', authenticateJWT, getDashboardStatistics);
 // Get water quality data (accessible to all authenticated users)
 router.get('/history', authenticateJWT, getWaterQualityHistory);
 
+// Statistical Measures Routes (accessible to all authenticated users)
+router.get('/statistics/mean', authenticateJWT, getMeanStatistics);
 
 export default router;
