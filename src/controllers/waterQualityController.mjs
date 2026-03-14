@@ -290,3 +290,49 @@ export const getVarianceStatistics = async (req, res, next) => {
 }
 
 
+/*
+|--------------------------------------------------------------------------
+| getStandardDeviationStatistics
+|--------------------------------------------------------------------------
+| Calculates standard deviation for each parameter.
+|
+| Expected operations:
+| - Determine how far measurements typically deviate
+|   from the mean value.
+|
+| Purpose:
+| Indicates water quality stability or variability
+| within the monitoring system.
+*/
+export const getStandardDeviationStatistics = async (req, res, next) => {
+    try {
+        const stdDevStats = await WaterQualityData.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    pH: { $stdDevPop: "$pH" },
+                    tds: { $stdDevPop: "$tds" },
+                    turbidity: { $stdDevPop: "$turbidity" },
+                    electricalConductivity: { $stdDevPop: "$electricalConductivity" },
+                    waterQualityIndex: { $stdDevPop: "$waterQualityIndex" }
+                }
+            }
+        ]);
+
+        if (stdDevStats.length === 0) {
+            return res.status(404).json({
+                status: "failed",
+                message: "No data available for standard deviation statistics"
+            });
+        }
+
+        return res.status(200).json({
+            status: "success",
+            message: "Standard deviation statistics calculated successfully",
+            data: stdDevStats[0]
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
