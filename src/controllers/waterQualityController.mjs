@@ -1170,3 +1170,115 @@ export const getWaterQualityClassification = async (req, res, next) => {
         next(error);
     }
 };
+
+
+/*
+|--------------------------------------------------------------------------
+| getWaterStabilityScore
+|--------------------------------------------------------------------------
+| Measures stability of water quality over time.
+|
+| Expected operations:
+| - Use variance or standard deviation to compute stability score.
+|
+| Purpose:
+| Indicates how consistent the water treatment system is.
+*/
+export const getWaterStabilityScore = async (req, res, next) => {
+    try {
+        const stabilityScores = await WaterQualityData.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    phStdDev: { $stdDevPop: "$pH" },
+                    tdsStdDev: { $stdDevPop: "$tds" },
+                    turbidityStdDev: { $stdDevPop: "$turbidity" },
+                    conductivityStdDev: { $stdDevPop: "$electricalConductivity" },
+                    wqiStdDev: { $stdDevPop: "$waterQualityIndex" },
+
+                    phMean: { $avg: "$pH" },
+                    tdsMean: { $avg: "$tds" },
+                    turbidityMean: { $avg: "$turbidity" },
+                    conductivityMean: { $avg: "$electricalConductivity" },
+                    wqiMean: { $avg: "$waterQualityIndex" }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    stabilityScore: {
+                        overall: {
+                            $avg: [
+                                { $divide: [1, { $add: [1, "$phStdDev"] }] },
+                                { $divide: [1, { $add: [1, { $divide: ["$tdsStdDev", 100] }] }] },
+                                { $divide: [1, { $add: [1, "$turbidityStdDev"] }] },
+                                { $divide: [1, { $add: [1, { $divide: ["$conductivityStdDev", 100] }] }] },
+                                { $divide: [1, { $add: [1, { $divide: ["$wqiStdDev", 20] }] }] }
+                            ]
+                        },
+                        parameters: {
+                            pH: { $divide: [1, { $add: [1, "$phStdDev"] }] },
+                            tds: { $divide: [1, { $add: [1, { $divide: ["$tdsStdDev", 100] }] }] },
+                            turbidity: { $divide: [1, { $add: [1, "$turbidityStdDev"] }] },
+                            conductivity: { $divide: [1, { $add: [1, { $divide: ["$conductivityStdDev", 100] }] }] },
+                            wqi: { $divide: [1, { $add: [1, { $divide: ["$wqiStdDev", 20] }] }] }
+                        }
+                    }
+                }
+            }
+        ]);
+
+        // Calculate trend stability (last 30 days vs previous 30 days)
+        const now = new Date();
+        const thirtyDaysAgo = new Date(now.setDate(now.getDate() - 30));
+        const sixtyDaysAgo = new Date(now.setDate(now.getDate() - 60));
+
+        const recentStability = await WaterQualityData.aggregate([
+            {
+                $match: {
+                    createdAt: { $gte: thirtyDaysAgo }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    avgWQI: { $avg: "$waterQualityIndex" },
+                    stdDevWQI: { $stdDevPop: "$waterQualityIndex" }
+                }
+            }
+        ]);
+
+        const previousStability = await WaterQualityData.aggregate([
+            {
+                $match: {
+                    createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    avgWQI: { $avg: "$waterQualityIndex" },
+                    stdDevWQI: { $stdDevPop: "$waterQualityIndex" }
+                }
+            }
+        ]);
+
+        const stabilityTrend = {
+            recent: recentStability[0] || null,
+            previous: previousStability[0] || null,
+            improvement: recentStability[0] && previousStability[0] ?
+                recentStability[0].stdDevWQI < previousStability[0].stdDevWQI : null
+        };
+
+        return res.status(200).json({
+            status: "success",
+            message: "Water stability score calculated",
+            data: {
+                current: stabilityScores[0] || { stabilityScore: { overall: 0 } },
+                trend: stabilityTrend
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};

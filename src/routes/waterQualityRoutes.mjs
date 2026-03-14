@@ -18,6 +18,7 @@ import {
   getParameterCorrelation,
   detectOutliers,
   getWaterQualityClassification,
+  getWaterStabilityScore,
 } from '../controllers/waterQualityController.mjs';
 
 const router = express.Router();
@@ -25,6 +26,7 @@ const router = express.Router();
 // Dashboard & Overview Routes (accessible to all authenticated users)
 router.get('/dashboard', authenticateJWT, getDashboardStatistics);
 router.get('/classification', authenticateJWT, getWaterQualityClassification);
+router.get('/stability', authenticateJWT, getWaterStabilityScore);
 
 // Get water quality data (accessible to all authenticated users)
 router.get('/history', authenticateJWT, getWaterQualityHistory);
