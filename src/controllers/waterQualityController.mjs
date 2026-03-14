@@ -1282,3 +1282,98 @@ export const getWaterStabilityScore = async (req, res, next) => {
         next(error);
     }
 };
+
+
+/*
+|--------------------------------------------------------------------------
+| getDistrictStatistics
+|--------------------------------------------------------------------------
+| Computes water quality statistics for a specific district.
+|
+| Expected operations:
+| - Filter records by district.
+| - Compute averages and trends.
+|
+| Purpose:
+| Allows comparison of water quality across districts.
+*/
+export const getDistrictStatistics = async (req, res, next) => {
+    try {
+        const { district } = req.params;
+
+        if (!district) {
+            return res.status(400).json({
+                status: "failed",
+                message: "District parameter is required"
+            });
+        }
+
+        const districtStats = await WaterQualityData.aggregate([
+            {
+                $match: { "location.district": district }
+            },
+            {
+                $group: {
+                    _id: "$location.district",
+                    totalReadings: { $sum: 1 },
+                    avgPH: { $avg: "$pH" },
+                    avgTDS: { $avg: "$tds" },
+                    avgTurbidity: { $avg: "$turbidity" },
+                    avgConductivity: { $avg: "$electricalConductivity" },
+                    avgWQI: { $avg: "$waterQualityIndex" },
+
+                    minWQI: { $min: "$waterQualityIndex" },
+                    maxWQI: { $max: "$waterQualityIndex" },
+                    stdDevWQI: { $stdDevPop: "$waterQualityIndex" },
+
+                    latestReading: { $max: "$createdAt" }
+                }
+            }
+        ]);
+
+        // Get time-based trends for the district
+        const monthlyTrend = await WaterQualityData.aggregate([
+            {
+                $match: { "location.district": district }
+            },
+            {
+                $group: {
+                    _id: {
+                        year: { $year: "$createdAt" },
+                        month: { $month: "$createdAt" }
+                    },
+                    avgWQI: { $avg: "$waterQualityIndex" },
+                    readings: { $sum: 1 }
+                }
+            },
+            {
+                $sort: { "_id.year": -1, "_id.month": -1 }
+            },
+            {
+                $limit: 12
+            }
+        ]);
+
+        // Get list of all districts for reference
+        const allDistricts = await WaterQualityData.distinct("location.district");
+
+        if (districtStats.length === 0) {
+            return res.status(404).json({
+                status: "failed",
+                message: `No data found for district: ${district}`
+            });
+        }
+
+        return res.status(200).json({
+            status: "success",
+            message: `Statistics for district: ${district}`,
+            data: {
+                district: districtStats[0],
+                monthlyTrend,
+                availableDistricts: allDistricts
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
