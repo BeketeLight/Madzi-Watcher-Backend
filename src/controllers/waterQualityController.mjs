@@ -920,3 +920,70 @@ export const getMovingAverage = async (req, res, next) => {
     }
 };
 
+
+/*
+|--------------------------------------------------------------------------
+| getParameterCorrelation
+|--------------------------------------------------------------------------
+| Computes statistical correlation between parameters.
+|
+| Expected operations:
+| - Determine relationships such as:
+|     TDS vs Conductivity
+|     Turbidity vs WQI
+|     pH vs WQI
+|
+| Purpose:
+| Helps understand which factors influence water quality most.
+*/
+export const getParameterCorrelation = async (req, res, next) => {
+    try {
+        const data = await WaterQualityData.find({})
+            .select("pH tds turbidity electricalConductivity waterQualityIndex")
+            .lean();
+
+        if (data.length < 2) {
+            return res.status(400).json({
+                status: "failed",
+                message: "Insufficient data for correlation analysis"
+            });
+        }
+
+        const calculateCorrelation = (x, y) => {
+            const n = x.length;
+            const sumX = x.reduce((a, b) => a + b, 0);
+            const sumY = y.reduce((a, b) => a + b, 0);
+            const sumXY = x.reduce((acc, val, i) => acc + val * y[i], 0);
+            const sumX2 = x.reduce((acc, val) => acc + val * val, 0);
+            const sumY2 = y.reduce((acc, val) => acc + val * val, 0);
+
+            const numerator = n * sumXY - sumX * sumY;
+            const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+
+            return denominator === 0 ? 0 : numerator / denominator;
+        };
+
+        const pH = data.map(d => d.pH).filter(v => v !== null);
+        const tds = data.map(d => d.tds).filter(v => v !== null);
+        const turbidity = data.map(d => d.turbidity).filter(v => v !== null);
+        const conductivity = data.map(d => d.electricalConductivity).filter(v => v !== null);
+        const wqi = data.map(d => d.waterQualityIndex).filter(v => v !== null);
+
+        const correlations = {
+            tds_conductivity: calculateCorrelation(tds, conductivity),
+            turbidity_wqi: calculateCorrelation(turbidity, wqi),
+            pH_wqi: calculateCorrelation(pH, wqi),
+            pH_turbidity: calculateCorrelation(pH, turbidity),
+            tds_wqi: calculateCorrelation(tds, wqi)
+        };
+
+        return res.status(200).json({
+            status: "success",
+            message: "Parameter correlations calculated successfully",
+            data: correlations
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+

@@ -15,6 +15,7 @@ import {
   getYearlyStatistics,
   getTrendAnalysis,
   getMovingAverage,
+  getParameterCorrelation,
 } from '../controllers/waterQualityController.mjs';
 
 const router = express.Router();
@@ -41,4 +42,5 @@ router.get('/aggregations/yearly', authenticateJWT, getYearlyStatistics);
 // Analysis Routes (accessible to all authenticated users)
 router.get('/analysis/trends', authenticateJWT, getTrendAnalysis);
 router.get('/analysis/moving-average', authenticateJWT, getMovingAverage);
+router.get('/analysis/correlation', authenticateJWT, getParameterCorrelation);
 export default router;
