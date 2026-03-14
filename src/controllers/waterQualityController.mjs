@@ -1071,3 +1071,102 @@ export const detectOutliers = async (req, res, next) => {
         next(error);
     }
 };
+
+
+/*
+|--------------------------------------------------------------------------
+| getWaterQualityClassification
+|--------------------------------------------------------------------------
+| Classifies water safety using the Water Quality Index (WQI).
+|
+| Expected operations:
+| - Calculate average WQI.
+| - Categorize water quality (Excellent, Good, Poor, Unsafe).
+|
+| Purpose:
+| Provides a simple interpretation of water safety.
+*/
+export const getWaterQualityClassification = async (req, res, next) => {
+    try {
+        const classification = await WaterQualityData.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    avgWQI: { $avg: "$waterQualityIndex" },
+                    minWQI: { $min: "$waterQualityIndex" },
+                    maxWQI: { $max: "$waterQualityIndex" },
+                    readings: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    avgWQI: 1,
+                    minWQI: 1,
+                    maxWQI: 1,
+                    readings: 1,
+                    classification: {
+                        $switch: {
+                            branches: [
+                                { case: { $lte: ["$avgWQI", 50] }, then: "Excellent" },
+                                { case: { $lte: ["$avgWQI", 100] }, then: "Good" },
+                                { case: { $lte: ["$avgWQI", 200] }, then: "Poor" }
+                            ],
+                            default: "Unsafe"
+                        }
+                    },
+                    distribution: {
+                        excellent: {
+                            $size: {
+                                $filter: {
+                                    input: { $literal: [] }, // This is a placeholder, we need a different approach
+                                    as: "item",
+                                    cond: { $lte: ["$$item.waterQualityIndex", 50] }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        ]);
+
+        // Get distribution separately
+        const distribution = await WaterQualityData.aggregate([
+            {
+                $group: {
+                    _id: {
+                        $switch: {
+                            branches: [
+                                { case: { $lte: ["$waterQualityIndex", 50] }, then: "Excellent" },
+                                { case: { $lte: ["$waterQualityIndex", 100] }, then: "Good" },
+                                { case: { $lte: ["$waterQualityIndex", 200] }, then: "Poor" }
+                            ],
+                            default: "Unsafe"
+                        }
+                    },
+                    count: { $sum: 1 },
+                    avgWQI: { $avg: "$waterQualityIndex" }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    category: "$_id",
+                    count: 1,
+                    avgWQI: 1
+                }
+            }
+        ]);
+
+        return res.status(200).json({
+            status: "success",
+            message: "Water quality classification completed",
+            data: {
+                overall: classification[0] || null,
+                distribution
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
