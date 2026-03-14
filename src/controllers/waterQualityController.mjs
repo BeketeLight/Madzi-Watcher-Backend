@@ -234,4 +234,59 @@ export const getMeanStatistics = async (req, res, next) => {
 };
 
 
+/*
+|--------------------------------------------------------------------------
+| getVarianceStatistics
+|--------------------------------------------------------------------------
+| Computes the statistical variance for each water quality parameter.
+|
+| Expected operations:
+| - Measure how much readings vary from the average.
+| - Use MongoDB aggregation to calculate variance.
+|
+| Purpose:
+| Helps identify unstable or fluctuating water quality conditions.
+*/
+export const getVarianceStatistics = async (req, res, next) => {
+    try {
+        const varianceStats = await WaterQualityData.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    pHVariance: { $stdDevPop: "$pH" },
+                    tdsVariance: { $stdDevPop: "$tds" },
+                    turbidityVariance: { $stdDevPop: "$turbidity" },
+                    conductivityVariance: { $stdDevPop: "$electricalConductivity" },
+                    wqiVariance: { $stdDevPop: "$waterQualityIndex" }
+                }
+            },
+            {
+                $project: {
+                    pH: { $pow: ["$pHVariance", 2] },
+                    tds: { $pow: ["$tdsVariance", 2] },
+                    turbidity: { $pow: ["$turbidityVariance", 2] },
+                    electricalConductivity: { $pow: ["$conductivityVariance", 2] },
+                    waterQualityIndex: { $pow: ["$wqiVariance", 2] }
+                }
+            }
+        ]);
+
+        if (varianceStats.length === 0) {
+            return res.status(404).json({
+                status: "failed",
+                message: "No data available for variance statistics"
+            });
+        }
+
+        return res.status(200).json({
+            status: "success",
+            message: "Variance statistics calculated successfully",
+            data: varianceStats[0]
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+}
+
 
