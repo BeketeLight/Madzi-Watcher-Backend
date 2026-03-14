@@ -666,3 +666,63 @@ export const getMonthlyStatistics = async (req, res, next) => {
         next(error);
     }
 };
+
+
+/*
+|--------------------------------------------------------------------------
+| getYearlyStatistics
+|--------------------------------------------------------------------------
+| Aggregates water quality statistics per year.
+|
+| Expected operations:
+| - Group sensor data by year.
+| - Calculate yearly averages.
+|
+| Purpose:
+| Enables long-term monitoring of water system performance.
+*/
+export const getYearlyStatistics = async (req, res, next) => {
+    try {
+        const yearlyStats = await WaterQualityData.aggregate([
+            {
+                $group: {
+                    _id: { year: { $year: "$createdAt" } },
+                    year: { $first: { $year: "$createdAt" } },
+                    avgPH: { $avg: "$pH" },
+                    avgTDS: { $avg: "$tds" },
+                    avgTurbidity: { $avg: "$turbidity" },
+                    avgConductivity: { $avg: "$electricalConductivity" },
+                    avgWQI: { $avg: "$waterQualityIndex" },
+                    minWQI: { $min: "$waterQualityIndex" },
+                    maxWQI: { $max: "$waterQualityIndex" },
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $sort: { year: -1 }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    year: 1,
+                    avgPH: 1,
+                    avgTDS: 1,
+                    avgTurbidity: 1,
+                    avgConductivity: 1,
+                    avgWQI: 1,
+                    minWQI: 1,
+                    maxWQI: 1,
+                    readings: "$count"
+                }
+            }
+        ]);
+
+        return res.status(200).json({
+            status: "success",
+            message: "Yearly statistics retrieved successfully",
+            data: yearlyStats
+        });
+    } catch (error) {
+        next(error);
+    }
+};
