@@ -987,3 +987,87 @@ export const getParameterCorrelation = async (req, res, next) => {
     }
 };
 
+
+/*
+|--------------------------------------------------------------------------
+| detectOutliers
+|--------------------------------------------------------------------------
+| Identifies abnormal sensor readings.
+|
+| Expected operations:
+| - Use statistical methods (Z-score or deviation threshold)
+|   to detect extreme values.
+|
+| Purpose:
+| Helps detect contamination events or sensor malfunction.
+*/
+export const detectOutliers = async (req, res, next) => {
+    try {
+        const { threshold = 3, parameter = "turbidity" } = req.query; // Z-score threshold
+
+        const validParameters = ["pH", "tds", "turbidity", "electricalConductivity", "waterQualityIndex"];
+
+        if (!validParameters.includes(parameter)) {
+            return res.status(400).json({
+                status: "failed",
+                message: "Invalid parameter. Choose from: " + validParameters.join(", ")
+            });
+        }
+
+        const stats = await WaterQualityData.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    mean: { $avg: `$${parameter}` },
+                    stdDev: { $stdDevPop: `$${parameter}` }
+                }
+            }
+        ]);
+
+        if (stats.length === 0) {
+            return res.status(404).json({
+                status: "failed",
+                message: "No data available for outlier detection"
+            });
+        }
+
+        const { mean, stdDev } = stats[0];
+
+        const outliers = await WaterQualityData.find({
+            [parameter]: {
+                $not: {
+                    $gte: mean - threshold * stdDev,
+                    $lte: mean + threshold * stdDev
+                }
+            }
+        })
+        .sort({ createdAt: -1 })
+        .limit(100)
+        .lean();
+
+        const outlierStats = outliers.map(outlier => ({
+            _id: outlier._id,
+            value: outlier[parameter],
+            zScore: Math.abs((outlier[parameter] - mean) / stdDev),
+            deviation: outlier[parameter] - mean,
+            percentageDeviation: ((outlier[parameter] - mean) / mean * 100).toFixed(2) + "%",
+            timestamp: outlier.createdAt,
+            fullReading: outlier
+        }));
+
+        return res.status(200).json({
+            status: "success",
+            message: "Outliers detected successfully",
+            data: {
+                parameter,
+                mean,
+                stdDev,
+                threshold: parseFloat(threshold),
+                outlierCount: outliers.length,
+                outliers: outlierStats
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
