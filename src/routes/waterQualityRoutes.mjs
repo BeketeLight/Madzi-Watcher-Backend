@@ -56,7 +56,4 @@ router.get('/stats/treatment-plant',    authenticateJWT, getTreatmentPlantStatis
 // router.put('/:id',     authenticateJWT, checkRole(['admin', 'superadmin', 'officer']), updateWaterQualityData);
 // router.delete('/:id',  authenticateJWT, checkRole(['admin', 'superadmin', 'officer']), deleteWaterQualityData);
 
-// Location-Based Routes (accessible to all authenticated users)
-router.get('/district/:district', authenticateJWT, getDistrictStatistics);
-router.get('/plant/:plantId', authenticateJWT, getTreatmentPlantStatistics);
 export default router;
