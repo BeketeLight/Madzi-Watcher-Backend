@@ -13,7 +13,14 @@ const waterQualitySchema = new Schema({
   location: {
     district: { type: String, required: true },
     treatmentPlantId: { type: String, required: true }
-  },  
+  },
+  anomaly: {
+    detected:{type: Boolean, default: false},
+    pH: {type: Boolean, default: false},
+    tds: {type: Boolean, default: false},
+    turbidity:{type: Boolean, default: false},
+    electricalConductivity:{type: Boolean, default: false}
+  }, 
   createdAt: { type: Date, default: Date.now }, 
 })
 

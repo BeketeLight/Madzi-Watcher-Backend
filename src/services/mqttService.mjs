@@ -13,13 +13,16 @@ const MQTT_PASSWORD = process.env.MQTT_PASSWORD || null;
 
 let ioInstance; // Will be set from server.mjs
 
-const mqttClient = mqtt.connect(`${MQTT_BROKER}:${MQTT_PORT}`, {
+const mqttClient = mqtt.connect({
+  host:MQTT_BROKER,
+  port:MQTT_PORT, 
   username: process.env.MQTT_USERNAME, // Optional: for authenticated brokers
   password: process.env.MQTT_PASSWORD, // Optional: for authenticated brokers
   clientId: MQTT_CLIENT_ID,
   clean: true,
+  protocol: 'mqtt',
   reconnectPeriod: 1000,
-  connectTimeout: 4000,
+  connectTimeout: 4000
 });
 
 mqttClient.on('connect', () => {
@@ -54,6 +57,7 @@ mqttClient.on('message', async (topic, message) => {
         tds,
         waterQualityIndex,
         electricalConductivity,
+        anomaly,
         location = { district: 'Unknown', treatmentPlantId: 'N/A' }
       } = payload;
 
@@ -76,6 +80,7 @@ mqttClient.on('message', async (topic, message) => {
         waterQualityIndex,
         electricalConductivity,
         time: new Date(),
+        anomaly,
         location,
       });
 

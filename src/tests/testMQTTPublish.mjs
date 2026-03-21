@@ -13,22 +13,24 @@ const MQTT_TOPIC_SENSOR = process.env.MQTT_TOPIC_SENSOR || "waterquality/sensor"
 const MQTT_TOPIC_CONTROL = process.env.MQTT_TOPIC_CONTROL || "waterquality/control";  
 
 
-const client = mqtt.connect(`${MQTT_HOST}:${MQTT_PORT}`, {
+const client = mqtt.connect({
+  hoost:MQTT_HOST,
+  port:MQTT_PORT, 
   username: MQTT_USER,
   password: MQTT_PASS,
   rejectUnauthorized: true
 });
 
 client.on("connect", () => {
-  console.log("✅ Connected to HiveMQ");
+  console.log("✅ Connected to MQTT MQTT_BROKER");
 
   const sensorPayload = {
-    deviceId: "ESP32-001",
-    turbidity: 4.5,
-    pH: 7.2,
-    tds: 310,
-    waterQualityIndex: 85,  
-    electricalConductivity: 1200,
+    deviceId: "ESP32-001", 
+    turbidity: Number((Math.random() * 7.5 + 0.5).toFixed(1)),     // 0.5 – 8.0 NTU
+    pH: Number((Math.random() * 1.4 + 6.8).toFixed(1)),           // 6.8 – 8.2
+    tds: Math.floor(Math.random() * 251 + 200),                   // 200 – 450 ppm
+    waterQualityIndex: Math.floor(Math.random() * 26 + 70),       // 70 – 95 (simulated WQI)
+    electricalConductivity: Math.floor(Math.random() * 601 + 800), // 800 – 1400 µS/cm
     location: {
       district: "Lilongwe",
       treatmentPlantId: "TP-01"
