@@ -5,7 +5,7 @@ dotenv.config();
 
 // MQTT Configuration       
 
-const MQTT_HOST = process.env.MQTT_BROKER;
+const MQTT_BROKER = process.env.MQTT_BROKER;
 const MQTT_PORT = process.env.MQTT_PORT || 8883;
 const MQTT_USER = process.env.MQTT_USERNAME;
 const MQTT_PASS = process.env.MQTT_PASSWORD;
@@ -13,12 +13,16 @@ const MQTT_TOPIC_SENSOR = process.env.MQTT_TOPIC_SENSOR || "waterquality/sensor"
 const MQTT_TOPIC_CONTROL = process.env.MQTT_TOPIC_CONTROL || "waterquality/control";  
 
 
-const client = mqtt.connect({
-  hoost:MQTT_HOST,
-  port:MQTT_PORT, 
-  username: MQTT_USER,
-  password: MQTT_PASS,
-  rejectUnauthorized: true
+const client = mqtt.connect(`${MQTT_BROKER}:${MQTT_PORT}`,{
+  username: process.env.MQTT_USERNAME, // Optional: for authenticated brokers
+  password: process.env.MQTT_PASSWORD, //Optional: for authenticated brokers
+  clientId: "CLIENT-TEST-PUBLISHER",
+  clean: true,
+  protocol: 'mqtts', // Use 'mqtts' for secure connection, 'mqtt' for unencrypted
+  reconnectPeriod: 1000,
+  rejectUnauthorized: false,   // Allow HiveMQ's certificate
+  connectTimeout: 4000,       // Increase to 20 seconds for the cloud hop
+  keepalive: 60,
 });
 
 client.on("connect", () => {
