@@ -1,7 +1,9 @@
 // src/services/mqttService.mjs
 import mqtt from 'mqtt';
+import dotenv from 'dotenv';
 import WaterQualityData from '../models/WaterQualityData.mjs';
-// import { calculateWQI } from '../utils/wqiCalculator.mjs';
+// import { calculateWQI } from '../utils/wqiCalculator.mjs'
+dotenv.config();
 
 const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://broker.hivemq.com';
 const MQTT_TOPIC_SENSOR = process.env.MQTT_TOPIC_SENSOR || 'waterquality/sensor';
@@ -13,9 +15,11 @@ const MQTT_PASSWORD = process.env.MQTT_PASSWORD || null;
 
 let ioInstance; // Will be set from server.mjs
 
-const mqttClient = mqtt.connect(MQTT_BROKER,{
+console.log(`[MQTT] Connecting to broker at ${MQTT_BROKER}:${MQTT_PORT} with client ID ${MQTT_CLIENT_ID}`); 
+
+const mqttClient = mqtt.connect(`${MQTT_BROKER}:${MQTT_PORT}`,{
   //host:MQTT_BROKER,
-  port:MQTT_PORT, 
+  //port:MQTT_PORT, 
   username: process.env.MQTT_USERNAME, // Optional: for authenticated brokers
   password: process.env.MQTT_PASSWORD, // Optional: for authenticated brokers
   clientId: MQTT_CLIENT_ID,
