@@ -1,4 +1,5 @@
 import WaterQualityData from "../models/WaterQualityData.mjs";
+import { buildDateFilter } from "../utils/dateFilters.mjs";
 
 
 /*
@@ -203,7 +204,20 @@ export const getWaterQualityHistory = async (req, res, next) => {
 */
 export const getMeanStatistics = async (req, res, next) => {
     try {
+
+        const { 
+            period = 'all',
+            startDate,
+            endDate 
+        } = req.query;
+
+        // Build the date filter
+        const dateFilter = buildDateFilter(period, startDate, endDate);
+
         const meanStats = await WaterQualityData.aggregate([
+            {
+                $match: dateFilter
+            },
             {
                 $group: {
                     _id: null,
@@ -216,17 +230,23 @@ export const getMeanStatistics = async (req, res, next) => {
             }
         ]);
 
-        if (meanStats.length === 0) {
+        if (!meanStats || meanStats.length === 0) {
             return res.status(404).json({
                 status: "failed",
-                message: "No data available for mean statistics"
+                message: "No data available for mean statistics in the selected period"
             });
         }
 
+        const totalReadings = await WaterQualityData.countDocuments(dateFilter);
+
         return res.status(200).json({
             status: "success",
-            message: "Mean statistics calculated successfully",
-            data: meanStats[0]
+            message: `Mean statistics calculated successfully for period: ${period}`,
+            data: {
+                ...meanStats[0],
+                totalReadings,
+                appliedFilter: { period, startDate, endDate }
+            }
         });
     } catch (error) {
         next(error);
@@ -249,7 +269,19 @@ export const getMeanStatistics = async (req, res, next) => {
 */
 export const getVarianceStatistics = async (req, res, next) => {
     try {
+
+         const { 
+            period = 'all',
+            startDate,
+            endDate 
+        } = req.query;
+
+        // Build the date filter
+        const dateFilter = buildDateFilter(period, startDate, endDate);
         const varianceStats = await WaterQualityData.aggregate([
+            {
+                $match: dateFilter
+            },
             {
                 $group: {
                     _id: null,
@@ -306,7 +338,19 @@ export const getVarianceStatistics = async (req, res, next) => {
 */
 export const getStandardDeviationStatistics = async (req, res, next) => {
     try {
+
+         const { 
+            period = 'all',
+            startDate,
+            endDate 
+        } = req.query;
+
+        // Build the date filter
+        const dateFilter = buildDateFilter(period, startDate, endDate);
         const stdDevStats = await WaterQualityData.aggregate([
+            {
+                $match: dateFilter
+            },
             {
                 $group: {
                     _id: null,
@@ -352,8 +396,17 @@ export const getStandardDeviationStatistics = async (req, res, next) => {
 */
 export const getMedianStatistics = async (req, res, next) => {
     try {
+
+         const { 
+            period = 'all',
+            startDate,
+            endDate 
+        } = req.query;
+
+        // Build the date filter
+        const dateFilter = buildDateFilter(period, startDate, endDate);
         const getAllValues = async (field) => {
-            const values = await WaterQualityData.find({}, { [field]: 1, _id: 0 })
+            const values = await WaterQualityData.find(dateFilter, { [field]: 1, _id: 0 })
                 .sort({ [field]: 1 })
                 .lean();
             return values.map(v => v[field]).filter(v => v !== null && v !== undefined);
@@ -406,7 +459,19 @@ export const getMedianStatistics = async (req, res, next) => {
 */
 export const getMinMaxStatistics = async (req, res, next) => {
     try {
+
+         const { 
+            period = 'all',
+            startDate,
+            endDate 
+        } = req.query;
+
+        // Build the date filter
+        const dateFilter = buildDateFilter(period, startDate, endDate);
         const minMaxStats = await WaterQualityData.aggregate([
+            {
+                $match: dateFilter
+            },
             {
                 $group: {
                     _id: null,
@@ -1186,7 +1251,18 @@ export const getWaterQualityClassification = async (req, res, next) => {
 */
 export const getWaterStabilityScore = async (req, res, next) => {
     try {
+         const { 
+            period = 'all',
+            startDate,
+            endDate 
+        } = req.query;
+
+        // Build the date filter
+        const dateFilter = buildDateFilter(period, startDate, endDate);
         const stabilityScores = await WaterQualityData.aggregate([
+            {
+                $match: dateFilter
+            },
             {
                 $group: {
                     _id: null,
